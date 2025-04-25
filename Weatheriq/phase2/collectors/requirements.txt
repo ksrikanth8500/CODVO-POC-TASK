@@ -1,0 +1,7 @@
+requests
+psycopg2-binary
+psycopg2-binary==2.9.9
+requests==2.32.3
+psycopg2-binary==2.9.5
+
+
