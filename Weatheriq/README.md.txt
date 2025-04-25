@@ -1,0 +1,233 @@
+# WeatherIQ – Intelligent Weather Analytics System
+
+WeatherIQ is a full-stack weather data analytics system built in 4 phases. It fetches real-time, forecasted, and historical weather data, stores and processes it, and uses vector embeddings to support Retrieval-Augmented Generation (RAG) for intelligent query responses.
+
+---
+
+## 🌐 Project Architecture
+
+```
+                 OpenWeatherMap API
+                          |
+              --------------------------
+              |         |         |    |
+        Real-time  Forecast  Historical  Air Quality
+              |         |         |    |
+              +---------+---------+----+
+                        |
+                Phase 2: Collectors
+                        |
+                   PostgreSQL
+                        |
+                Phase 3: Ingestion
+             (Transform + Validation)
+                        |
+         +--------------+-------------+
+         |                            |
+  SentenceTransformer           pgvector
+         |                            |
+         +--------------+-------------+
+                        |
+              Phase 4: FastAPI RAG API
+                        |
+                      Client
+```
+
+---
+
+## 📂 Folder Structure
+
+```
+WeatherIQ/
+├── phase1/                              # Infrastructure Setup
+│   └── airflow_local/
+│   └──── dags/
+│
+├── phase2/                              # Weather Data Collection
+│   ├── collectors/
+│   │   ├── __init__.py
+│   │   ├── realtime_collector.py
+│   │   ├── historical_collector.py
+│   │   ├── forecast_collector.py
+│   │   ├── air_quality_collector.py
+│   │   └── config.py
+│   ├──db/ db.py
+│   └── requirements.txt
+│
+├── phase3/                              # Data Ingestion
+│   ├── ingestion/
+│   │   ├── city.list.json.gz
+│   │   ├── city.list.json
+│   │   ├── __init__.py
+│   │   └──bulk_trans_val.py
+│   ├── collectors/
+│   │   └── realtime_collector.py
+│
+│
+│
+├── phase4/                              # RAG System
+│   ├── api/
+│   │   ├── rag_api.py                   # FastAPI application
+│   ├── embeddings/
+│       ├── embedder.py                 # Embedding generation
+│       ├── storage.py                  # pgvector search and storage
+│
+├── db.py
+├── main.py
+├── models.py
+├── weather_service.py
+├── requirements.txt
+├── README.md
+├── architecture.png                    # Architecture Diagram
+└── requirements.txt
+```
+
+---
+
+## 🚀 Phase-wise Breakdown
+
+### ✅ Phase 1: Infrastructure
+- Setup PostgreSQL with pgvector
+- FastAPI base initialized
+- Optional: Docker/WSL setup for Airflow
+
+### ✅ Phase 2: Weather Data Collectors
+- Fetches real-time, historical, forecast, and air quality data
+- Stores raw and structured data into PostgreSQL
+
+### ✅ Phase 3: Ingestion Pipelines
+- Uses transformation and validation logic
+- Scheduled with Airflow to run ETL jobs
+
+### ✅ Phase 4: RAG System
+- SentenceTransformer for embeddings
+- pgvector stores & searches embeddings
+- FastAPI provides top-3 matching results based on similarity
+
+---
+
+## 👨‍💻 Technologies Used
+- FastAPI
+- PostgreSQL + pgvector
+- Apache Airflow
+- SentenceTransformer
+- OpenWeatherMap API
+
+---
+
+## ⚙️ Setup Instructions
+
+1. **PostgreSQL Setup**
+   - Ensure pgvector extension is installed and enabled
+2. **Install Requirements**
+   ```bash
+   pip install -r requirements.txt
+   ```
+3. **Run FastAPI**
+   ```bash
+   uvicorn phase4.api.rag_api:app --reload
+   ```
+4. **Access Docs**
+   - http://127.0.0.1:8000/docs
+
+---
+
+## ⚙️ Setup Instructions for **PostgreSQL Setup** with pgvector extension is installed and enabled
+
+# Step 1: Install PostgreSQL 16 (if not installed via Homebrew)
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+brew update
+brew install postgresql@16
+
+# Link PostgreSQL 16 to make it the default version
+brew link postgresql@16 --force
+
+# Step 2: Start PostgreSQL service
+brew services start postgresql@16
+
+# Step 3: Install pgvector extension
+brew install pgvector
+
+# Step 4: Connect to PostgreSQL and enable pgvector
+psql postgres
+
+-- Inside psql prompt, run:
+CREATE EXTENSION IF NOT EXISTS vector;
+
+-- Optionally create your database and enable pgvector in it:
+CREATE DATABASE poc;
+\c poc
+CREATE EXTENSION IF NOT EXISTS vector;
+
+-- Quit psql
+\q
+
+# Step 5: (Optional) Create a sample table using vector
+psql -d poc -U postgres -c "
+CREATE TABLE weather_vectors (
+    id SERIAL PRIMARY KEY,
+    city TEXT,
+    embedding VECTOR(384)
+);
+"
+---
+## ⚙️ Setup Instructions for Airflow
+
+# Step 1: Create and activate a virtual environment
+python3 -m venv airflow_venv
+source airflow_venv/bin/activate
+
+# Step 2: Export Airflow environment variables
+export AIRFLOW_HOME=~/airflow
+export AIRFLOW__CORE__EXECUTOR=LocalExecutor
+export AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://postgres:yourpassword@localhost:5432/airflow
+
+# If you want to use SQLite instead (simple testing only), use:
+# export AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=sqlite:///$AIRFLOW_HOME/airflow.db
+
+# Step 3: Install Airflow with constraints (change version if needed)
+AIRFLOW_VERSION=2.7.2
+PYTHON_VERSION="$(python --version | cut -d " " -f 2 | cut -d "." -f 1,2)"
+CONSTRAINT_URL="https://raw.githubusercontent.com/apache/airflow/constraints-${AIRFLOW_VERSION}/constraints-${PYTHON_VERSION}.txt"
+
+pip install "apache-airflow==${AIRFLOW_VERSION}" --constraint "${CONSTRAINT_URL}"
+
+# Step 4: Initialize Airflow database
+airflow db init
+
+# Step 5: Create Airflow user (admin)
+airflow users create \
+  --username admin \
+  --firstname Admin \
+  --lastname User \
+  --role Admin \
+  --email admin@example.com \
+  --password admin
+
+# Step 6: Start Airflow services
+airflow webserver --port 8080 &  # Wait a few seconds until the webserver is ready
+airflow scheduler &
+
+
+You can then access the Airflow UI at:
+👉 http://localhost:8080
+Login with username admin and password admin.
+
+
+---
+
+
+## 🔗 GitHub Repository
+
+### Repository: [WeatherIQ](https://github.com/your-username/WeatherIQ)
+
+Push the project using:
+```bash
+git init
+git remote add origin https://github.com/your-username/WeatherIQ.git
+git add .
+git commit -m "Initial commit"
+git push -u origin master
+```
+
+---
