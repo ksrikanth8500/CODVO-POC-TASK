@@ -72,6 +72,15 @@ WeatherIQ/
 │       ├── embedder.py                 # Embedding generation
 │       ├── storage.py                  # pgvector search and storage
 │
+│
+├── Testing/
+│     ├── test_bulk_trans_val.py  
+│     ├── test_embedder.py 
+│     ├── test_storage.py  
+│     └── test_rag_api.py
+│
+│
+│
 ├── db.py
 ├── main.py
 ├── models.py
